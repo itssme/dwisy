@@ -7,6 +7,9 @@
 
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <chrono>
+#include <ctime>
+
 using namespace cv;
 
 struct Config {
@@ -15,15 +18,16 @@ struct Config {
     double height;
 };
 
-void process_buffer(std::vector<Mat> buffer, const int& buffer_maxsize, int buffer_index, int frames, const Config& config, const Size& size) {
-    CascadeClassifier face_detection("res/haarcascade_frontalface_default.xml");
-    VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
+void process_buffer(std::vector<Mat> buffer, const int& buffer_maxsize, int buffer_index, int frames, CascadeClassifier* face_detection, const Config& config, const Size& size) {
+    std::time_t current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    String filename = "/tmp/" + String(std::ctime(&current_time)) + ".avi";
+    VideoWriter writer{VideoWriter(filename, CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
 
     Mat gray_frame;
     std::vector<Rect_<int>> faces;
     for (const Mat& process_frame: buffer) {
         cvtColor(process_frame, gray_frame, COLOR_BGR2GRAY);
-        face_detection.detectMultiScale(gray_frame, faces, 1.1, 5);
+        face_detection->detectMultiScale(gray_frame, faces, 1.1, 5);
 
         for (const Rect_<int>& face: faces) {
             rectangle(process_frame,
@@ -36,16 +40,6 @@ void process_buffer(std::vector<Mat> buffer, const int& buffer_maxsize, int buff
 
     writer.release();
     std::cout << "processed buffer" << std::endl;
-}
-
-void write_frames(std::vector<Mat> buffer, const int& buffer_maxsize, const Config& config, const Size& size) {
-    VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
-
-    for (int i = 0; i < buffer_maxsize; ++i) {
-        writer.write(buffer.at(i));
-    }
-
-    writer.release();
 }
 
 #endif //DWISY_UTILS_H

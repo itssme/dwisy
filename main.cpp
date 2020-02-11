@@ -26,6 +26,8 @@ int main() {
     bool in_movement{false};
     const int buffer_maxsize{(int) config.fps * 5};
     std::vector<Mat> buffer;
+    Scalar color = Scalar(0, 0, 255);
+    CascadeClassifier face_detection("res/haarcascade_frontalface_default.xml");
 
     for (int i = 0; i < buffer_maxsize; ++i) buffer.emplace_back(Mat());
 
@@ -79,14 +81,13 @@ int main() {
         if (buffer_counter == buffer_maxsize) {
             std::cout << "full" << std::endl;
             buffer_counter = 0;
-            std::thread writer(process_buffer, std::vector<Mat>(buffer), buffer_maxsize, 0, 0, config, size);
+            std::thread writer(process_buffer, std::vector<Mat>(buffer), buffer_maxsize, 0, 0, &face_detection, config, size);
             writer.detach();
         }
 
         in_movement = false;
         for(unsigned long i = 0; i < contours.size(); i++ ) {
             in_movement = true;
-            Scalar color = Scalar(0, 0, 255);
             drawContours(color_frame, contours, (int) i, color, 2, 8, hierarchy, 0, Point());
         }
 
