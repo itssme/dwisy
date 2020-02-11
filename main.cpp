@@ -1,26 +1,12 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include "utils.h"
 
 #define MOVEMENT_DETECTION_IMAGE_SIZE 500
 
 using namespace cv;
 
-struct Config {
-    double fps;
-    double width;
-    double height;
-};
-
-void write_frames(std::vector<Mat> buffer, const int& buffer_maxsize, const Config& config, const Size& size) {
-    VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
-
-    for (int i = 0; i < buffer_maxsize; ++i) {
-        writer.write(buffer.at(i));
-    }
-
-    writer.release();
-}
 
 int main() {
     VideoCapture video_stream = VideoCapture(0);
@@ -83,9 +69,19 @@ int main() {
 
         absdiff(frame, config_frame, compared_frame);
         threshold(compared_frame, compared_frame, 25, 255, THRESH_BINARY);
-        dilate(compared_frame, compared_frame, Mat());
+        dilate(compared_frame, compared_frame, Mat(), Size_(-1, -1), 4);
 
         findContours(compared_frame, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+        buffer.at(buffer_counter) = color_frame.clone();
+        buffer_counter++;
+
+        if (buffer_counter == buffer_maxsize) {
+            std::cout << "full" << std::endl;
+            buffer_counter = 0;
+            std::thread writer(process_buffer, std::vector<Mat>(buffer), buffer_maxsize, 0, 0, config, size);
+            writer.detach();
+        }
 
         in_movement = false;
         for(unsigned long i = 0; i < contours.size(); i++ ) {
@@ -101,16 +97,6 @@ int main() {
             } else {
                 renew_config_frame -= 1;
             }
-        }
-
-        buffer.at(buffer_counter) = color_frame;
-        buffer_counter++;
-
-        if (buffer_counter == buffer_maxsize) {
-            std::cout << "full" << std::endl;
-            buffer_counter = 0;
-            std::thread writer(write_frames, buffer, buffer_maxsize, config, size);
-            writer.detach();
         }
 
         imshow("Image", color_frame);
