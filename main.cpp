@@ -27,6 +27,9 @@ int main() {
     int renew_config_frame{renew_config_interval};
     Size size(config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE, MOVEMENT_DETECTION_IMAGE_SIZE);
     bool in_movement{false};
+    int buffer_maxsize{(int) config.fps * 5};
+    Mat buffer [buffer_maxsize];
+    int buffer_counter{0};
 
     std::cout << "Waiting for config frame" << std::endl;
 
@@ -51,6 +54,8 @@ int main() {
 
     std::cout << "Found config frame" << std::endl;
 
+    std::vector<Vec4i> hierarchy;
+    std::vector<std::vector<Point> > contours;
     while (true) {
         video_stream >> color_frame;
 
@@ -63,11 +68,9 @@ int main() {
         GaussianBlur(frame, frame, Size_<int>(21, 21), 0);
 
         absdiff(frame, config_frame, compared_frame);
-        threshold(compared_frame, compared_frame, 20, 255, THRESH_BINARY);
+        threshold(compared_frame, compared_frame, 25, 255, THRESH_BINARY);
         dilate(compared_frame, compared_frame, Mat());
 
-        std::vector<Vec4i> hierarchy;
-        std::vector<std::vector<Point> > contours;
         findContours(compared_frame, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
         in_movement = false;
@@ -84,6 +87,21 @@ int main() {
             } else {
                 renew_config_frame -= 1;
             }
+        }
+
+        buffer[buffer_counter] = color_frame;
+        buffer_counter++;
+
+        if (buffer_counter == buffer_maxsize) {
+            std::cout << "full" << std::endl;
+            buffer_counter = 0;
+            VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
+
+            for (int i = 0; i < buffer_maxsize; ++i) {
+                writer.write(buffer[i]);
+            }
+
+            writer.release();
         }
 
         imshow("Image", color_frame);

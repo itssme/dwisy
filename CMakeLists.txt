@@ -3,6 +3,7 @@ project(dwisy)
 
 set(CMAKE_CXX_STANDARD 17)
 find_package(OpenCV REQUIRED)
+include_directories(include)
 
 add_executable(dwisy main.cpp)
 target_link_libraries(dwisy ${OpenCV_LIBS})
