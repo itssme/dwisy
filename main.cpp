@@ -4,6 +4,8 @@
 #include "utils.h"
 
 #define MOVEMENT_DETECTION_IMAGE_SIZE 500
+#define MOVEMENT_THRESHOLD 20
+#define MOVEMENT_CHECK_FRAMES 5
 
 using namespace cv;
 
@@ -18,8 +20,11 @@ int main() {
 
     Mat frame;
     Mat config_frame;
+    Mat config_frame_in_movement;
     Mat compared_frame;
+    Mat compared_frame_in_movement;
     Mat color_frame;
+    int in_movement_threshold_counter{0};
     const int renew_config_interval{(int) config.fps};
     int renew_config_frame{renew_config_interval};
     Size size(config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE, MOVEMENT_DETECTION_IMAGE_SIZE);
@@ -28,9 +33,7 @@ int main() {
     std::vector<Mat> buffer;
     Scalar color = Scalar(0, 0, 255);
     CascadeClassifier face_detection("res/haarcascade_frontalface_default.xml");
-
     for (int i = 0; i < buffer_maxsize; ++i) buffer.emplace_back(Mat());
-
     int buffer_counter{0};
 
     std::cout << "Waiting for config frame" << std::endl;
@@ -69,12 +72,6 @@ int main() {
         cvtColor(color_frame, frame, COLOR_BGR2GRAY);
         GaussianBlur(frame, frame, Size_<int>(21, 21), 0);
 
-        absdiff(frame, config_frame, compared_frame);
-        threshold(compared_frame, compared_frame, 25, 255, THRESH_BINARY);
-        dilate(compared_frame, compared_frame, Mat(), Size_(-1, -1), 4);
-
-        findContours(compared_frame, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
         buffer.at(buffer_counter) = color_frame.clone();
         buffer_counter++;
 
@@ -85,10 +82,40 @@ int main() {
             writer.detach();
         }
 
-        in_movement = false;
-        for(unsigned long i = 0; i < contours.size(); i++ ) {
-            in_movement = true;
-            drawContours(color_frame, contours, (int) i, color, 2, 8, hierarchy, 0, Point());
+        if (not in_movement) {
+            absdiff(frame, config_frame, compared_frame);
+            threshold(compared_frame, compared_frame, MOVEMENT_THRESHOLD, 255, THRESH_BINARY);
+            findContours(compared_frame, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+            for (unsigned long i = 0; i < contours.size(); i++) {
+                in_movement = true;
+                drawContours(color_frame, contours, (int) i, color, 2, 8, hierarchy, 0, Point());
+            }
+
+            if (in_movement) {
+                config_frame.copyTo(config_frame_in_movement);
+            }
+        }
+
+        if (in_movement_threshold_counter == MOVEMENT_CHECK_FRAMES) {
+            absdiff(frame, config_frame_in_movement, compared_frame_in_movement);
+            threshold(compared_frame_in_movement, compared_frame_in_movement, MOVEMENT_THRESHOLD, 255, THRESH_BINARY);
+            findContours(compared_frame_in_movement, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+            in_movement = false;
+            for (unsigned long i = 0; i < contours.size(); i++) {
+                in_movement = true;
+                drawContours(color_frame, contours, (int) i, color, 2, 8, hierarchy, 0, Point());
+            }
+
+            if (not in_movement) {
+                config_frame_in_movement.copyTo(config_frame);
+            }
+
+            frame.copyTo(config_frame_in_movement);
+            in_movement_threshold_counter = 0;
+        } else if (in_movement) {
+            in_movement_threshold_counter++;
         }
 
         if (not in_movement) {
@@ -104,6 +131,12 @@ int main() {
         imshow("Frame", frame);
         imshow("config_frame", config_frame);
         imshow("Compared", compared_frame);
+
+        if (in_movement) {
+            std::cout << "In movement: true" << std::endl;
+        } else {
+            std::cout << "In movement: false" << std::endl;
+        }
 
         char c = (char) waitKey(25);
         if (c == 27) // esc key
