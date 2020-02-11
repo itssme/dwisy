@@ -25,6 +25,7 @@ int main() {
     const int renew_config_interval{(int) config.fps};
     int renew_config_frame{renew_config_interval};
     Size size(config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE, MOVEMENT_DETECTION_IMAGE_SIZE);
+    bool in_movement{false};
 
     std::cout << "Waiting for config frame" << std::endl;
 
@@ -60,23 +61,38 @@ int main() {
         cvtColor(frame, frame, COLOR_BGR2GRAY);
         GaussianBlur(frame, frame, Size_<int>(21, 21), 0);
 
-        if (not renew_config_frame) {
-            renew_config_frame = renew_config_interval;
-            config_frame = frame;
-        } else {
-            renew_config_frame -= 1;
-        }
-
         absdiff(frame, config_frame, compared_frame);
         threshold(compared_frame, compared_frame, 20, 255, THRESH_BINARY);
         dilate(compared_frame, compared_frame, Mat());
 
+        std::vector<Vec4i> hierarchy;
+        std::vector<std::vector<Point> > contours;
+        findContours(compared_frame, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+        in_movement = false;
+        Mat drawing = Mat::zeros(compared_frame.size(), CV_8UC3);
+        for(unsigned long i = 0; i < contours.size(); i++ ) {
+            in_movement = true;
+            Scalar color = Scalar(0, 0, 255);
+            drawContours(drawing, contours, (int) i, color, 2, 8, hierarchy, 0, Point());
+        }
+
+        if (not in_movement) {
+            if (not renew_config_frame) {
+                renew_config_frame = renew_config_interval;
+                config_frame = frame;
+            } else {
+                renew_config_frame -= 1;
+            }
+        }
+
+        imshow("Drawing", drawing);
         imshow("Frame", frame);
         imshow("config_frame", config_frame);
         imshow("Compared", compared_frame);
 
         char c = (char) waitKey(25);
-        if (c == 27)
+        if (c == 27) // esc key
             break;
     }
 
