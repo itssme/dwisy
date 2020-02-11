@@ -1,5 +1,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <thread>
 
 #define MOVEMENT_DETECTION_IMAGE_SIZE 500
 
@@ -10,6 +11,16 @@ struct Config {
     double width;
     double height;
 };
+
+void write_frames(std::vector<Mat> buffer, const int& buffer_maxsize, const Config& config, const Size& size) {
+    VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
+
+    for (int i = 0; i < buffer_maxsize; ++i) {
+        writer.write(buffer.at(i));
+    }
+
+    writer.release();
+}
 
 int main() {
     VideoCapture video_stream = VideoCapture(0);
@@ -27,8 +38,11 @@ int main() {
     int renew_config_frame{renew_config_interval};
     Size size(config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE, MOVEMENT_DETECTION_IMAGE_SIZE);
     bool in_movement{false};
-    int buffer_maxsize{(int) config.fps * 5};
-    Mat buffer [buffer_maxsize];
+    const int buffer_maxsize{(int) config.fps * 5};
+    std::vector<Mat> buffer;
+
+    for (int i = 0; i < buffer_maxsize; ++i) buffer.emplace_back(Mat());
+
     int buffer_counter{0};
 
     std::cout << "Waiting for config frame" << std::endl;
@@ -89,19 +103,14 @@ int main() {
             }
         }
 
-        buffer[buffer_counter] = color_frame;
+        buffer.at(buffer_counter) = color_frame;
         buffer_counter++;
 
         if (buffer_counter == buffer_maxsize) {
             std::cout << "full" << std::endl;
             buffer_counter = 0;
-            VideoWriter writer{VideoWriter("/tmp/test.avi", CV_FOURCC('M', 'J', 'P', 'G'), config.fps, size)};
-
-            for (int i = 0; i < buffer_maxsize; ++i) {
-                writer.write(buffer[i]);
-            }
-
-            writer.release();
+            std::thread writer(write_frames, buffer, buffer_maxsize, config, size);
+            writer.detach();
         }
 
         imshow("Image", color_frame);
