@@ -18,23 +18,30 @@ int main() {
     config.width = video_stream.get(CAP_PROP_FRAME_WIDTH);
     config.height = video_stream.get(CAP_PROP_FRAME_HEIGHT);
 
-    Mat frame;
-    Mat config_frame;
-    Mat config_frame_in_movement;
-    Mat compared_frame;
-    Mat compared_frame_in_movement;
-    Mat color_frame;
+    // frames
+    Mat frame{};
+    Mat config_frame{};
+    Mat config_frame_in_movement{};
+    Mat compared_frame{};
+    Mat compared_frame_in_movement{};
+    Mat color_frame{};
+
+    // movement detection
     int in_movement_threshold_counter{0};
     const int renew_config_interval{(int) config.fps};
     int renew_config_frame{renew_config_interval};
-    Size size(config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE, MOVEMENT_DETECTION_IMAGE_SIZE);
     bool in_movement{false};
+
+    // buffer
     const int buffer_maxsize{(int) config.fps * 5};
-    std::vector<Mat> buffer;
-    Scalar color = Scalar(0, 0, 255);
-    CascadeClassifier face_detection("res/haarcascade_frontalface_default.xml");
+    std::vector<Mat> buffer{};
     for (int i = 0; i < buffer_maxsize; ++i) buffer.emplace_back(Mat());
     int buffer_counter{0};
+
+    // opencv variables
+    CascadeClassifier face_detection("res/haarcascade_frontalface_default.xml");
+    Scalar color = Scalar(0, 0, 255);
+    Size size((int) (config.width/config.height * MOVEMENT_DETECTION_IMAGE_SIZE), MOVEMENT_DETECTION_IMAGE_SIZE);
 
     std::cout << "Waiting for config frame" << std::endl;
 
@@ -59,8 +66,8 @@ int main() {
 
     std::cout << "Found config frame" << std::endl;
 
-    std::vector<Vec4i> hierarchy;
-    std::vector<std::vector<Point> > contours;
+    std::vector<Vec4i> hierarchy{};
+    std::vector<std::vector<Point>> contours{};
     while (true) {
         video_stream >> color_frame;
 
