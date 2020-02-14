@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "utils.h"
+#include "face_db.h"
 
 #define MOVEMENT_DETECTION_IMAGE_SIZE 500
 #define MOVEMENT_THRESHOLD 20
@@ -60,6 +61,9 @@ int main() {
                 } else {
                     warm_up--;
                 }
+            } else {
+                std::cerr << "[!] unable to obtain video frame from device" << std::endl;
+                return 1;
             }
         }
     }

@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 find_package(OpenCV REQUIRED)
 include_directories(include)
 
-add_executable(dwisy main.cpp include/utils.h)
+add_executable(dwisy main.cpp include/utils.h src/face_db.cpp include/face_db.h)
 target_link_libraries(dwisy ${OpenCV_LIBS})
 
 if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
