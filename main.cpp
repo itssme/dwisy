@@ -19,6 +19,8 @@ int main() {
     config.width = video_stream.get(CAP_PROP_FRAME_WIDTH);
     config.height = video_stream.get(CAP_PROP_FRAME_HEIGHT);
 
+    FaceDB face_db = FaceDB();
+
     // frames
     Mat frame{};
     Mat config_frame{};
@@ -89,7 +91,7 @@ int main() {
         if (buffer_counter == buffer_maxsize) {
             std::cout << "full" << std::endl;
             buffer_counter = 0;
-            std::thread writer(process_buffer, std::vector<Mat>(buffer), buffer_maxsize, 0, 0, &face_detection, config, size);
+            std::thread writer(process_buffer, std::vector<Mat>(buffer), buffer_maxsize, 0, 0, &face_detection, config, size, &face_db);
             writer.detach();
         }
 
@@ -143,11 +145,13 @@ int main() {
         imshow("config_frame", config_frame);
         imshow("Compared", compared_frame);
 
+        /*
         if (in_movement) {
             std::cout << "In movement: true" << std::endl;
         } else {
             std::cout << "In movement: false" << std::endl;
         }
+        */
 
         char c = (char) waitKey(25);
         if (c == 27) // esc key

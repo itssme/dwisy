@@ -7,7 +7,10 @@
 #ifndef DWISY_FACE_DB_H
 #define DWISY_FACE_DB_H
 
+#define FACE_SIZE_OFFSET 25
+
 #include <opencv2/opencv.hpp>
+#include <chrono>
 
 using namespace cv;
 
@@ -18,9 +21,11 @@ struct IdentifiedFace {
 
 class FaceDB {
 public:
-    String working_dir;
+    String working_dir{"/tmp"};
     bool store(Mat face, String name);
     bool store(IdentifiedFace id_face);
+    bool store_unidentified(const Mat& face);
+    static Mat prepare_face(const Mat& face, const Rect& detected_face);
     String identify(Mat face);
     std::vector<IdentifiedFace> readFaces();
 };
