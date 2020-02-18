@@ -21,5 +21,10 @@ bool FaceDB::store_unidentified(const Mat& face) {
     std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(
             std::chrono::system_clock::now().time_since_epoch()
     );
-    return imwrite(this->working_dir + "/unidentified/" + std::to_string(ms.count()) + ".png", face);
+
+    float blur = cv::videostab::calcBlurriness(face);
+
+    std::string blur_s = std::to_string(blur);
+    std::replace(blur_s.begin(), blur_s.end(), '.', '_');
+    return (blur < FACE_QUALITY) ? imwrite(this->working_dir + "/unidentified/" + std::to_string(ms.count()) + "_AC_" + blur_s + ".png", face) : false;
 }

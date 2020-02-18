@@ -19,7 +19,7 @@ struct Config {
     double height;
 };
 
-void process_buffer(std::vector<Mat> buffer, const int& buffer_maxsize, int buffer_index, int frames, CascadeClassifier* face_detection, const Config& config, const Size& size, FaceDB* face_db) {
+void process_buffer(const std::vector<Mat>& buffer, const int& buffer_maxsize, int buffer_index, int frames, CascadeClassifier* face_detection, const Config& config, const Size& size, FaceDB* face_db) {
     std::time_t current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     String filename = "/tmp/" + String(std::ctime(&current_time)) + ".avi";
     VideoWriter writer{VideoWriter(filename, VideoWriter::fourcc('M', 'J', 'P', 'G'), config.fps, size)};
@@ -31,11 +31,12 @@ void process_buffer(std::vector<Mat> buffer, const int& buffer_maxsize, int buff
         face_detection->detectMultiScale(gray_frame, faces, 1.1, 5);
 
         for (const Rect_<int>& face: faces) {
+            face_db->store_unidentified(FaceDB::prepare_face(process_frame, face));
+
             rectangle(process_frame,
                     Point(face.x, face.y),
                     Point(face.x + face.width, face.y + face.height),
                     Scalar(255, 0, 0));
-            face_db->store_unidentified(face_db->prepare_face(process_frame, face));
         }
         writer.write(process_frame);
     }

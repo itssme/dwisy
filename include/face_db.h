@@ -8,9 +8,11 @@
 #define DWISY_FACE_DB_H
 
 #define FACE_SIZE_OFFSET 25
+#define FACE_QUALITY 0.0002
 
 #include <opencv2/opencv.hpp>
 #include <chrono>
+#include <algorithm>
 
 using namespace cv;
 
